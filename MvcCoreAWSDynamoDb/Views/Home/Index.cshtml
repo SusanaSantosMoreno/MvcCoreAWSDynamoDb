@@ -1,1 +1,68 @@
-﻿<h1>AWS Application</h1>
+﻿@model IEnumerable<MvcCoreAWSDynamoDb.Models.Coche>
+@{
+    ViewData["Title"] = "Home";
+}
+<h2 class="text-center mt-5">Coches</h2>
+<a asp-action="Create" class="btn btn-outline-dark float-right mb-3 mt-3">Create New</a>
+@if (Model != null) {
+<table class="table table-striped text-center">
+    <thead class="thead-dark">
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.IdCoche)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Marca)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Modelo)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.VelocidadMaxima)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Imagen)
+            </th>
+            <th></th>
+            <th></th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.IdCoche)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Marca)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Modelo)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.VelocidadMaxima)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Imagen)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-controller="Home" asp-route-id="@item.IdCoche">
+                    <i class="bi bi-pencil-fill text-dark"></i>
+                </a>
+            </td>
+            <td>
+                <a asp-action="Details" asp-controller="Home" asp-route-id="@item.IdCoche">
+                    <i class="bi bi-info-circle-fill text-dark"></i>
+                </a>
+            </td>
+            <td>
+                <a asp-action="Delete" asp-controller="Home" asp-route-id="@item.IdCoche">
+                    <i class="bi bi-dash-circle-fill text-dark"></i>
+                </a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
+}
