@@ -1,25 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using MvcCoreAWSDynamoDb.Helpers;
 using MvcCoreAWSDynamoDb.Models;
 using MvcCoreAWSDynamoDb.Services;
 
 namespace MvcCoreAWSBlank.Controllers {
     public class HomeController : Controller {
 
-        public ServiceAWSDynamoDb service;
+        public ServiceAWSDynamoDb serviceDynamo;
+        private UploadHelper uploadhelper;
+        public ServiceAWSS3 ServiceS3;
 
-        public HomeController (ServiceAWSDynamoDb service) {
-            this.service = service;
+        public HomeController (ServiceAWSDynamoDb service, ServiceAWSS3 serviceS3, UploadHelper helper) {
+            this.serviceDynamo = service;
+            this.ServiceS3 = serviceS3;
+            this.uploadhelper = helper;
         }
         public async Task<IActionResult> Index () {
-            return View(await this.service.GetCochesAsync());
+            return View(await this.serviceDynamo.GetCochesAsync());
         }
 
         public async Task<IActionResult> Details (int id) {
-            return View(await this.service.GetCocheAsync(id));
+            Coche coche = await this.serviceDynamo.GetCocheAsync(id);
+            Stream stream = await this.ServiceS3.GetFileAsync(coche.Imagen);
+            ViewData["Imagen"] = File(stream, "image/png");
+            return View(coche);
         }
 
         public IActionResult Create () {
@@ -27,20 +37,30 @@ namespace MvcCoreAWSBlank.Controllers {
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create (Coche car,
+        public async Task<IActionResult> Create (int idCoche, String marca, 
+            String modelo, int velocidadMaxima, IFormFile imagen, 
             String incluirmotor, String tipo, int caballos, int cilindrada) {
+
+            Coche coche = new Coche(idCoche, marca, modelo, velocidadMaxima, imagen.FileName);
             if (incluirmotor != null) {
-                car.Motor = new Motor();
-                car.Motor.Tipo = tipo;
-                car.Motor.Caballos = caballos;
-                car.Motor.Cilindrada = cilindrada;
+                coche.Motor = new Motor();
+                coche.Motor.Tipo = tipo;
+                coche.Motor.Caballos = caballos;
+                coche.Motor.Cilindrada = cilindrada;
             }
-            await this.service.CreateCocheAsync(car);
+
+            String path = await this.uploadhelper.UploadFileAsync(imagen, Folders.Images);
+            using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read)) {
+                bool respuesta = await this.ServiceS3.UploadFileAsync(stream, imagen.FileName);
+            };
+            await this.serviceDynamo.CreateCocheAsync(coche);
             return RedirectToAction("Index");
         }
 
         public async Task<IActionResult> Delete (int id) {
-            await this.service.DeleteCocheAsync(id);
+            Coche coche = await this.serviceDynamo.GetCocheAsync(id);
+            await this.ServiceS3.DeleteFileAsync(coche.Imagen);
+            await this.serviceDynamo.DeleteCocheAsync(id);
             return RedirectToAction("Index");
         }
 
